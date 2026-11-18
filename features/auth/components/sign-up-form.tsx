@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "../safe-next-path";
 
 export function SignUpForm() {
   const [email, setEmail] = useState("");
@@ -42,7 +43,8 @@ export function SignUpForm() {
     }
 
     // 이메일 확인을 끈 프로젝트이므로 가입과 동시에 세션이 만들어진다.
-    router.push("/settings");
+    const next = new URLSearchParams(window.location.search).get("next");
+    router.push(safeNextPath(next, "/settings"));
     router.refresh();
   }
 

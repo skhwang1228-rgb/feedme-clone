@@ -27,6 +27,7 @@ export async function convertHtml(
     site: (result.site ?? "").trim(),
     wordCount: result.wordCount ?? 0,
     markdown,
+    url,
   };
 }
 

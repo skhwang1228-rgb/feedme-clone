@@ -1,7 +1,7 @@
 "use client";
 
 import { SearchIcon, TriangleAlertIcon, XIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -28,20 +28,51 @@ const BUBBLES = [
   { left: "90%", bottom: 20, size: 14 },
 ];
 
-export function UrlConverter() {
+type UrlConverterProps = {
+  /** 변환 결과 아래에 붙는 동작(예: 저장). autoRun은 로그인 왕복 뒤 복원된 결과일 때 true. */
+  resultAction?: (page: ConvertedPage, autoRun: boolean) => ReactNode;
+  /** 헤더 오른쪽 위(테마 토글 옆)에 놓는 진입 링크. */
+  headerAction?: ReactNode;
+  /** `?resume=save`로 돌아왔을 때 보존돼 있던 결과를 꺼낸다. */
+  takeResumed?: () => ConvertedPage | null;
+};
+
+export function UrlConverter({
+  resultAction,
+  headerAction,
+  takeResumed,
+}: UrlConverterProps = {}) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState<ConvertedPage | null>(null);
   const [session, setSession] = useState(0); // 새 결과/지우기마다 내보내기 패널을 초기화
+  const [resumed, setResumed] = useState(false);
   const inFlight = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("resume") !== "save") return;
+    window.history.replaceState(null, "", "/");
+    const restored = takeResumed?.();
+    if (!restored) return;
+    // 브라우저 저장소(외부 시스템)에서 복원하는 것이라 effect 안에서 state를 채운다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setInput(restored.url);
+    setPage(restored);
+    setResumed(true);
+    setSession((n) => n + 1);
+    // 마운트 때 한 번만 복원한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (inFlight.current) return;
     setFetchError(null);
     setPage(null);
+    setResumed(false);
     const url = parseWebUrl(input);
     if (!url) {
       setUrlError(INVALID_URL);
@@ -81,6 +112,7 @@ export function UrlConverter() {
     setUrlError(null);
     setFetchError(null);
     setPage(null);
+    setResumed(false);
     setSession((n) => n + 1);
   }
 
@@ -91,7 +123,10 @@ export function UrlConverter() {
           aria-hidden
           className="absolute inset-x-[-1rem] top-[-2.5rem] bottom-0 -z-20 bg-[radial-gradient(ellipse_60%_70%_at_50%_0%,color-mix(in_oklch,var(--primary)_20%,transparent),transparent_70%)]"
         />
-        <ThemeToggle className="absolute top-3 right-0" />
+        <div className="absolute top-3 right-0 flex items-center gap-2">
+          {headerAction}
+          <ThemeToggle />
+        </div>
         <div className="flex flex-col gap-2.5">
           <h1 className="font-heading text-[clamp(1.75rem,6vw,2.75rem)] leading-tight font-semibold tracking-tight">
             <span className="text-primary">URL</span>{" "}
@@ -201,6 +236,9 @@ export function UrlConverter() {
       {page && (
         <>
           <ResultCard page={page} />
+          {resultAction && (
+            <div key={session}>{resultAction(page, resumed)}</div>
+          )}
           <ExportPanel key={session} page={page} />
         </>
       )}
