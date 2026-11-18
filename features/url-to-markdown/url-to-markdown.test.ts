@@ -38,6 +38,7 @@ describe("convertHtml", () => {
     expect(page.title).toBe("테스트 글");
     expect(page.author).toBe("홍길동");
     expect(page.markdown).toContain("본문 문장입니다");
+    expect(page.url).toBe("https://example.com/post");
   });
 
   it("저자가 없으면 빈 문자열을 돌려준다", async () => {

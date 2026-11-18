@@ -83,7 +83,15 @@ export function LoginForm() {
           </Button>
           <p className="text-center text-sm">
             계정이 없나요?{" "}
-            <Link href="/auth/sign-up" className="underline underline-offset-4">
+            <Link
+              href="/auth/sign-up"
+              onClick={(e) => {
+                // 가입 후에도 원래 가려던 곳으로 돌아오도록 next를 넘긴다.
+                if (!window.location.search) return;
+                e.preventDefault();
+                router.push(`/auth/sign-up${window.location.search}`);
+              }}
+              className="underline underline-offset-4">
               회원가입
             </Link>
           </p>
